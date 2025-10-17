@@ -40,7 +40,6 @@ Upload your resume once, visit any LinkedIn or Indeed job post, and get a match 
 | **Design** | CSS Variables · Responsive Layout |
 
 ---
-
 ## 📁 Project Structure
 
 ```bash
@@ -51,7 +50,7 @@ resume-analyzer/
 ├── content.js          # Extracts job descriptions
 ├── style.css           # UI styling
 └── icons/              # Extension icons
-
+```
 ⚙️ Setup & Installation
 
 Clone the Repository
