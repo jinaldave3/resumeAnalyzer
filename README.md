@@ -51,3 +51,58 @@ resume-analyzer/
 ├── content.js          # Extracts job descriptions
 ├── style.css           # UI styling
 └── icons/              # Extension icons
+
+⚙️ Setup & Installation
+
+Clone the Repository
+
+git clone https://github.com/jinaldave3/resume-analyzer.git
+
+
+Load into Chrome
+
+Visit chrome://extensions
+
+Enable Developer mode
+
+Click Load unpacked
+
+Select the project folder
+
+Use
+
+Open any LinkedIn or Indeed job post
+
+Upload your resume
+
+Click Analyze Resume to view your match score
+
+🧩 How It Works
+
+User uploads a resume file → stored locally (Base64).
+
+content.js scrapes job description text.
+
+popup.js calculates keyword similarity.
+
+Result displays as a percentage match with a summary message.
+
+🎨 UI Preview
+<p align="center"> <img src="./icons/demo.png" width="500px" alt="Resume Analyzer Preview"/> </p>
+🔮 Future Enhancements
+
+🤖 AI-powered semantic matching via OpenAI API
+
+🕵️ Keyword highlighting & improvement suggestions
+
+🧾 Application tracker dashboard
+
+🌙 Dark mode toggle
+
+👩🏻‍💻 Author
+
+Jinal Dave
+🎓 M.S. Software Engineering – NJIT
+🌐 Portfolio
+ · 💼 LinkedIn
+ · 💻 GitHub
