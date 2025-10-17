@@ -86,8 +86,6 @@ popup.js calculates keyword similarity.
 
 Result displays as a percentage match with a summary message.
 
-🎨 UI Preview
-<p align="center"> <img src="./icons/demo.png" width="500px" alt="Resume Analyzer Preview"/> </p>
 🔮 Future Enhancements
 
 🤖 AI-powered semantic matching via OpenAI API
