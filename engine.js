@@ -17,3 +17,5 @@ export function validateInputs(body){
  if(body.resume.length>40000||body.job.length>30000)throw new Error('Use up to 40,000 résumé characters and 30,000 job-description characters.');
 }
 export const example={resume:'Example candidate — fictional\nBuilt a React registration application using JavaScript and MongoDB.\nGathered stakeholder requirements and defined user stories and acceptance criteria.\nConducted user research and functional testing.\nMentored students on Java and Python projects.',job:'Example Product Analyst position — fictional\nWe need SQL and Excel for data analysis.\nPartner with stakeholders to gather requirements and define product metrics.\nExperience with A/B testing, user research and communication.\nPython and React experience are useful.'};
+
+export function matchScore(rows){return rows.length?Math.round(100*rows.filter(r=>r.status==='found').length/rows.length):null;}

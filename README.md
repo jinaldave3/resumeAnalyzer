@@ -6,9 +6,9 @@ A Chrome extension with a local Node backend, extending Jinal Dave's original Re
 
 1. Paste résumé text, or extract it locally from PDF, DOCX or TXT (under 5 MB; PDFs up to 25 pages).
 2. Capture the current LinkedIn/Indeed job description on demand, or paste it. Review the text before continuing.
-3. Compare locally against a fixed skill dictionary: source excerpts, uncertain wording and missing phrases. No ATS score or hiring probability.
+3. Click Analyze résumé to see an estimated match percentage: fully matched dictionary skills divided by detected job skills. Uncertain résumé wording does not count as a full match. No detected skills produces an unavailable score, not zero. This is not an actual ATS score or hiring probability.
 4. Optionally consent to send both displayed texts to OpenAI for source-backed rewrite suggestions, clarification questions, and future project ideas.
-5. Export a Markdown review. Nothing automatically edits the résumé.
+5. Review AI suggestions in the app. Nothing automatically edits the résumé.
 
 ## Run
 
@@ -31,7 +31,7 @@ The key belongs only in ignored `.env.local`, using `OPENAI_API_KEY`. Optional v
 
 - Ten unit tests pass for phrase matching, aliases, uncertain context, validation, API request construction, simulated structured responses, source-excerpt filtering, refusal/incomplete handling and quota messages.
 - Local integration checks pass for synthetic PDF, DOCX and TXT extraction, denying access to `.env.local`, rejecting untrusted web origins, and requiring consent.
-- Browser walkthrough verified fictional data, real local comparison, evidence results and consent-required behavior.
+- Initial browser walkthrough verified local comparison and consent-required behavior. The simplified interface removes the fictional-example control, detailed evidence map, and report download.
 - A tiny live OpenAI access request on 8 November 2026 returned HTTP 429 `credit_balance_exhausted`. **Live AI suggestions are implemented but not successfully verified.** Simulated API unit tests are not a successful live integration or a quality evaluation. Add credits in OpenAI Platform billing, then test with fictional data before using personal documents.
 - On-page Chrome extension capture and Chrome storage have not been exercised on live LinkedIn/Indeed pages. Website changes, collapsed descriptions and protected browser pages can break capture. Paste fallback is available.
 
