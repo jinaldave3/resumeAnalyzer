@@ -1,67 +1,20 @@
-const fileInput = document.getElementById("resumeInput");
-const resultBox = document.getElementById("result");
-const analyzeBtn = document.getElementById("analyzeBtn");
-
-// Restore saved resume on popup open
-document.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("resumeData");
-  if (saved) {
-    const { name } = JSON.parse(saved);
-    showFileName(name);
-  }
-});
-
-// Handle new file uploads
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const data = { name: file.name, content: reader.result };
-    localStorage.setItem("resumeData", JSON.stringify(data));
-    showFileName(file.name);
-  };
-  reader.readAsDataURL(file);
-});
-
-// Run analysis only when button is clicked
-analyzeBtn.addEventListener("click", async () => {
-  const saved = localStorage.getItem("resumeData");
-  if (!saved) return (resultBox.textContent = "⚠️ Please upload a resume first.");
-  const { name } = JSON.parse(saved);
-  resultBox.innerHTML = `📊 Analyzing <strong>${name}</strong>...`;
-  resultBox.classList.add("loading");
-
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) throw new Error("No active tab");
-
-    const [res] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        const jobText =
-          document.querySelector("section, article, div")?.innerText || "";
-        return jobText.slice(0, 5000);
-      }
-    });
-
-    const jobText = res?.result || "";
-    console.log("Extracted text sample:", jobText.substring(0, 150));
-
-    const score = Math.floor(70 + Math.random() * 25);
-    resultBox.classList.remove("loading");
-    resultBox.innerHTML = `✅ Analysis complete for <strong>${name}</strong>!<br>
-      <span style="color:#64748b;font-size:0.9rem;">
-        Your resume matches <strong>${score}%</strong> of this job description.
-      </span>`;
-  } catch (err) {
-    console.error(err);
-    resultBox.classList.remove("loading");
-    resultBox.innerHTML = "❌ Could not analyze this page.";
-  }
-});
-
-// Helper
-function showFileName(name) {
-  resultBox.innerHTML = `📄 <strong>${name}</strong> loaded and ready for analysis.`;
-}
+import {analyze,validateInputs,example} from './engine.js';
+const $=id=>document.getElementById(id),api='http://127.0.0.1:8766';let last=null,revision=0;
+const status=t=>{$('status').textContent=t;};
+const el=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;};
+async function request(path,body){const r=await fetch(api+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed.');return data;}
+const inputs=()=>({resume:$('resume').value.trim(),job:$('job').value.trim()});
+async function remember(){if(!globalThis.chrome?.storage)return;if($('remember').checked)await chrome.storage.local.set({resumeText:$('resume').value});else await chrome.storage.local.remove(['resumeText','resumeData']);}
+function invalidate(){revision++;last=null;$('result').replaceChildren();$('suggestions').replaceChildren();$('export').disabled=true;$('consent').checked=false;}
+for(const id of ['resume','job'])$(id).addEventListener('input',()=>{invalidate();if(id==='resume')remember().catch(()=>status('Local storage unavailable.'));});
+$('remember').onchange=()=>remember().catch(()=>status('Local storage unavailable.'));
+if(globalThis.chrome?.storage)chrome.storage.local.get('resumeText').then(data=>{if(data.resumeText){$('resume').value=data.resumeText;$('remember').checked=true;}});
+$('sample').onclick=()=>{invalidate();$('resume').value=example.resume;$('job').value=example.job;$('remember').checked=false;remember();status('Fictional example loaded; nothing sent to OpenAI.');};
+$('clear').onclick=()=>{invalidate();$('resume').value='';$('job').value='';$('resumeInput').value='';$('remember').checked=false;try{localStorage.removeItem('resumeData');}catch{}remember();status('Text and remembered résumé cleared. Downloaded reports remain on your device.');};
+$('resumeInput').onchange=async()=>{const file=$('resumeInput').files[0];if(!file)return;if(file.size>5000000)return status('Choose a file under 5 MB.');status('Extracting locally…');const current=revision;try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});const result=await request('/api/extract',{name:file.name,data});if(revision!==current)return;invalidate();$('resume').value=result.text;await remember();status('Text extracted. Review it before requesting suggestions.');}catch(e){status(e.message+' Ensure the local server is running.');}};
+$('capture').onclick=async()=>{if(!globalThis.chrome?.scripting)return status('Capture requires the Chrome extension. Paste text in this browser preview.');try{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{for(const s of ['.jobs-description__content','.jobs-description-content__text','.jobs-description-content','#jobDescriptionText','.jobsearch-jobDescriptionText','.jobsearch-JobComponent-description']){const n=document.querySelector(s);if(n?.innerText?.trim().length>80)return n.innerText;}const selected=window.getSelection()?.toString();return selected?.length>80?selected:'';}});if(!result?.result)return status('No description found. Expand it, select the text, or paste it.');invalidate();$('job').value=result.result.slice(0,30000);status('Captured. Review for completeness before continuing.');}catch{status('Cannot read this tab. Paste the job description instead.');}};
+function compare(){const body=inputs();validateInputs(body);const rows=analyze(body.resume,body.job);last={...body,rows,ai:null};$('result').replaceChildren(el('h2','Your evidence map'),el('p',`${rows.filter(r=>r.status==='found').length} found · ${rows.filter(r=>r.status==='review').length} need review · ${rows.filter(r=>r.status==='gap').length} not found in dictionary scan`));if(!rows.length)$('result').append(el('p','No dictionary skills detected. Review the description manually; this does not mean it has no requirements.'));for(const r of rows){const card=el('article','',`evidence ${r.status}`);card.append(el('h3',`${r.skill} — ${r.status==='found'?'Text found':r.status==='review'?'Verify context':'Not found'}`),el('p','Job: '+r.requirement),el('blockquote',r.evidence||'No phrase detected. Check whether relevant experience exists before adding anything.'));$('result').append(card);}$('export').disabled=false;return body;}
+$('analyzeBtn').onclick=()=>{try{$('suggestions').replaceChildren();compare();status('Comparison complete. A phrase match is not proof of proficiency; absence is not proof you lack a skill.');}catch(e){status(e.message);}};
+$('suggest').onclick=async()=>{if(!$('consent').checked)return status('Confirm consent before sending text to OpenAI.');try{const body=compare(),current=revision;$('suggest').disabled=true;$('suggestions').replaceChildren();status('Requesting suggestions from OpenAI…');const data=await request('/api/suggest',{...body,consent:true});if(revision!==current)return status('Inputs changed. Outdated suggestions discarded.');last.ai=data;const area=$('suggestions');area.append(el('p',data.summary));for(const r of data.rewrites){const card=el('article','','evidence');card.append(el('h3','Possible rewrite — verify before using'),el('blockquote',r.original),el('p',r.suggested),el('p',r.reason));area.append(card);}area.append(el('h3','Questions before adding experience'));data.questions.forEach(q=>area.append(el('p',`${q.skill}: ${q.question}`)));area.append(el('h3','Project ideas — future work, not completed experience'));for(const p of data.projects){const card=el('article','','evidence');card.append(el('h3',p.title),el('p','Addresses: '+p.gap),el('p',p.scope));const ul=el('ul','');p.acceptance_criteria.forEach(c=>ul.append(el('li',c)));card.append(ul);area.append(card);}status('Suggestions received. Verify every fact; your résumé was not changed.');}catch(e){status(e.message+' Local comparison is still available.');}finally{$('suggest').disabled=false;}};
+$('export').onclick=()=>{if(!last)return;let report='# Résumé review\nKeyword evidence, not an ATS score.\n\n';for(const r of last.rows)report+=`## ${r.skill}: ${r.status}\nJob: ${r.requirement}\nRésumé: ${r.evidence||'No phrase detected'}\n\n`;if(last.ai){report+='## AI suggestions — verify facts\n'+last.ai.summary+'\n';for(const r of last.ai.rewrites)report+=`\nOriginal: ${r.original}\nSuggested: ${r.suggested}\n${r.reason}\n`;last.ai.questions.forEach(q=>report+=`\n${q.skill}: ${q.question}\n`);last.ai.projects.forEach(p=>report+=`\n### Future project: ${p.title}\n${p.gap}\n${p.scope}\n${p.acceptance_criteria.map(c=>'- '+c).join('\n')}\n`);}const url=URL.createObjectURL(new Blob([report],{type:'text/markdown'}));const a=el('a','');a.href=url;a.download='resume-review.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+request('/api/status').then(d=>$('api-status').textContent=d.configured?'Local server connected · key configured; credits not verified.':'Local server connected · no API key.').catch(()=>$('api-status').textContent='Start the local server for file extraction and AI. Pasted-text comparison works independently.');
